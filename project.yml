@@ -1,0 +1,76 @@
+name: CardCounter
+options:
+  bundleIdPrefix: app.cardcounter
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  CardCounter:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Shared
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: 记牌器
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    entitlements:
+      path: App/CardCounter.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.cardcounter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cardcounter.ios
+    dependencies:
+      - target: Broadcast
+        embed: true
+    scheme:
+      testTargets:
+        - CardCounterTests
+  Broadcast:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Broadcast
+      - Shared
+    info:
+      path: Broadcast/Info.plist
+      properties:
+        CFBundleDisplayName: 记牌器广播
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SampleHandler
+          RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer
+    entitlements:
+      path: Broadcast/Broadcast.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.cardcounter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cardcounter.ios.Broadcast
+    dependencies:
+      - sdk: ReplayKit.framework
+  CardCounterTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    info:
+      path: Tests/Info.plist
+    dependencies:
+      - target: CardCounter
