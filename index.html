@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="记牌器">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>打筒子记牌器</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 布局：牌桌绿底上一张 4×11 的剩余牌表，操作区紧贴下方，单手可达 */
+:root {
+  --felt: #0f4a35;
+  --felt-deep: #0a3527;
+  --card: #f6f8f4;
+  --card-empty: #1a5c46;
+  --ink: #17231e;
+  --red: #c8202c;
+  --gold: #e8c35a;
+  --muted: #a9c7b8;
+  --line: #2a7259;
+  --font: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background: var(--felt);
+  color: var(--card);
+  font-family: var(--font);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 24px;
+  display: grid;
+  gap: 12px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
+.seats { display: flex; background: var(--felt-deep); border-radius: 8px; padding: 3px; }
+.seats button {
+  border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600;
+  min-height: 36px; padding: 0 16px; border-radius: 6px;
+}
+.seats button[aria-pressed="true"] { background: var(--gold); color: var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.stats div { display: grid; gap: 1px; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 0; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.table {
+  display: grid;
+  grid-template-columns: 22px repeat(11, minmax(0, 1fr)) 26px;
+  gap: 3px;
+  align-items: center;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.head { font-size: 13px; font-weight: 700; color: var(--muted); }
+.sum { font-size: 13px; color: var(--gold); }
+.suit { font-size: 19px; }
+.suit.red { color: #ff7b83; }
+.cell {
+  border: 0; border-radius: 5px; padding: 0;
+  min-height: 52px; min-width: 0;
+  background: var(--card); color: var(--ink);
+  font: 700 20px/1 var(--font);
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation;
+}
+.cell.red { color: var(--red); }
+.cell.empty { background: var(--card-empty); color: var(--muted); font-weight: 400; }
+.cell:active { transform: scale(.94); }
+.cell:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.recent { min-height: 22px; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.recent.warn { color: var(--gold); }
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pipVideo { position: fixed; right: 0; bottom: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.actions button {
+  min-height: 46px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--felt-deep); color: var(--card); font: 600 16px var(--font);
+}
+.actions button:disabled { opacity: .45; }
+#reset.armed { background: var(--red); border-color: var(--red); }
+.seatRow { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+.plays { display: grid; gap: 8px; }
+.play { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.5; }
+.play b { color: var(--gold); }
+.play span { overflow-wrap: anywhere; }
+.hint { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .cell:active { transform: none; } }
+</style>
+
+<main>
+  <header>
+    <h1>打筒子记牌器</h1>
+    <div class="seats" role="group" aria-label="人数">
+      <button id="p3" type="button">3人</button>
+      <button id="p4" type="button">4人</button>
+    </div>
+  </header>
+
+  <dl class="stats">
+    <div><dt>已记</dt><dd id="seen">0</dd></div>
+    <div><dt>未见</dt><dd id="left">176</dd></div>
+    <div><dt>底牌</dt><dd id="bottom">0</dd></div>
+  </dl>
+
+  <div class="seatRow">
+    <span>记给</span>
+    <div class="seats" id="seatBar" role="group" aria-label="记给哪一家"></div>
+  </div>
+
+  <div class="table" id="table"></div>
+  <div class="recent" id="recent" aria-live="polite"></div>
+
+  <div class="actions">
+    <button id="undo" type="button">撤销</button>
+    <button id="pip" type="button">悬浮窗</button>
+    <button id="reset" type="button">新一局</button>
+  </div>
+
+  <section class="plays" id="plays" aria-label="每家出的牌"></section>
+  <video class="pipVideo" id="pipVideo" playsinline muted autoplay aria-hidden="true"></video>
+
+  <p class="hint">格子里是这张牌还剩几张。先选“记给”哪一家，点一下记一张，长按还原一张。开局把自己的手牌记给“我”，别人打出的牌记给对应的玩家。未见的牌包含底牌。</p>
+</main>
+
+<script>
+const SUITS = ['♠', '♥', '♣', '♦'];
+const RANKS = ['2', 'A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5'];
+const SEATS = { 3: ['我', '上家', '下家'], 4: ['我', '上家', '对家', '下家'] };
+const COPIES = 4, TOTAL = 176, HAND = 44, LONG_PRESS_MS = 450, STORAGE_KEY = 'dtz-counter';
+const isRed = suit => suit === '♥' || suit === '♦';
+const $ = id => document.getElementById(id);
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved && Array.isArray(saved.history)) {
+      // 旧版记录只有牌，没有玩家，统一算作“我”
+      const history = saved.history.map(item => typeof item === 'string' ? { card: item, seat: '我' } : item);
+      const players = saved.players === 3 ? 3 : 4;
+      const seat = SEATS[players].includes(saved.seat) ? saved.seat : '我';
+      return { players, seat, history };
+    }
+  } catch (e) {}
+  return { players: 3, seat: '我', history: [] };
+}
+
+const state = load();
+let notice = '';
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+const remaining = card => COPIES - state.history.filter(item => item.card === card).length;
+const sum = cards => cards.reduce((n, card) => n + remaining(card), 0);
+
+function record(card) {
+  if (remaining(card) === 0) {
+    notice = card + ' 已经记满 4 张';
+  } else {
+    state.history.push({ card, seat: state.seat });
+    notice = '';
+  }
+  update();
+}
+
+function restore(card) {
+  const index = state.history.map(item => item.card).lastIndexOf(card);
+  if (index < 0) return;
+  state.history.splice(index, 1);
+  notice = '已还原 ' + card;
+  update();
+}
+
+const cells = new Map();
+const suitSums = new Map();
+const rankSums = new Map();
+
+function label(text, className) {
+  const el = document.createElement('div');
+  el.className = className;
+  el.textContent = text;
+  $('table').append(el);
+  return el;
+}
+
+function bindCell(button, card) {
+  let timer = null;
+  let longPressed = false;
+  const clear = () => { clearTimeout(timer); timer = null; };
+
+  button.addEventListener('pointerdown', () => {
+    longPressed = false;
+    timer = setTimeout(() => { longPressed = true; restore(card); }, LONG_PRESS_MS);
+  });
+  button.addEventListener('pointerup', clear);
+  button.addEventListener('pointerleave', clear);
+  button.addEventListener('pointercancel', clear);
+  button.addEventListener('click', () => {
+    if (!longPressed) record(card);
+    longPressed = false;
+  });
+  button.addEventListener('contextmenu', event => event.preventDefault());
+}
+
+function buildTable() {
+  label('', 'head');
+  RANKS.forEach(rank => label(rank, 'head'));
+  label('余', 'head');
+
+  for (const suit of SUITS) {
+    label(suit, 'suit' + (isRed(suit) ? ' red' : ''));
+    for (const rank of RANKS) {
+      const card = suit + rank;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cell' + (isRed(suit) ? ' red' : '');
+      bindCell(button, card);
+      $('table').append(button);
+      cells.set(card, button);
+    }
+    suitSums.set(suit, label('', 'sum'));
+  }
+
+  label('余', 'head');
+  RANKS.forEach(rank => rankSums.set(rank, label('', 'sum')));
+  label('', 'head');
+}
+
+function update() {
+  for (const [card, button] of cells) {
+    const count = remaining(card);
+    button.textContent = count;
+    button.classList.toggle('empty', count === 0);
+    button.setAttribute('aria-label', card + ' 剩余 ' + count + ' 张');
+  }
+  for (const [suit, el] of suitSums) el.textContent = sum(RANKS.map(rank => suit + rank));
+  for (const [rank, el] of rankSums) el.textContent = sum(SUITS.map(suit => suit + rank));
+
+  $('seen').textContent = state.history.length;
+  $('left').textContent = TOTAL - state.history.length;
+  $('bottom').textContent = TOTAL - state.players * HAND;
+  $('p3').setAttribute('aria-pressed', state.players === 3);
+  $('p4').setAttribute('aria-pressed', state.players === 4);
+  $('undo').disabled = state.history.length === 0;
+
+  const recent = $('recent');
+  recent.classList.toggle('warn', Boolean(notice));
+  recent.textContent = notice || (state.history.length
+    ? '最近：' + state.history.slice(-8).reverse().map(item => item.seat + item.card).join(' ')
+    : '还没有记录');
+  renderSeats();
+  drawPip();
+  save();
+}
+
+// 悬浮窗：把牌表画到画布，再当作视频交给系统画中画
+const PIP_WIDTH = 640, PIP_HEIGHT = 300, PIP_LABEL = 86, PIP_COLUMN = 50, PIP_ROW = 56;
+const pipCanvas = document.createElement('canvas');
+pipCanvas.width = PIP_WIDTH;
+pipCanvas.height = PIP_HEIGHT;
+
+function drawPip() {
+  const ctx = pipCanvas.getContext('2d');
+  ctx.fillStyle = '#0a3527';
+  ctx.fillRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
+  ctx.font = '700 28px -apple-system, "PingFang SC", sans-serif';
+  ctx.textBaseline = 'middle';
+
+  const text = (value, x, row, color, align = 'center') => {
+    ctx.textAlign = align;
+    ctx.fillStyle = color;
+    ctx.fillText(value, x, 34 + row * PIP_ROW);
+  };
+  const columnX = column => PIP_LABEL + column * PIP_COLUMN + PIP_COLUMN / 2;
+
+  text('余', 12, 1, '#e8c35a', 'left');
+  RANKS.forEach((rank, column) => {
+    const left = sum(SUITS.map(suit => suit + rank));
+    text(rank, columnX(column), 0, '#a9c7b8');
+    text(left, columnX(column), 1, left ? '#e8c35a' : '#2a7259');
+  });
+
+  SEATS[state.players].filter(seat => seat !== '我').forEach((seat, index) => {
+    text(seat, 12, index + 2, '#f6f8f4', 'left');
+    RANKS.forEach((rank, column) => {
+      const count = state.history.filter(item => item.seat === seat && item.card.slice(1) === rank).length;
+      text(count || '·', columnX(column), index + 2, count ? '#f6f8f4' : '#2a7259');
+    });
+  });
+}
+
+function startPipStream() {
+  const video = $('pipVideo');
+  if (!pipCanvas.captureStream) return false;
+  if (!video.srcObject) video.srcObject = pipCanvas.captureStream(5);
+  return true;
+}
+
+function showNotice(message) {
+  notice = message;
+  update();
+}
+
+function togglePip() {
+  const video = $('pipVideo');
+  if (!startPipStream()) return showNotice('这个浏览器不支持悬浮窗');
+  video.play().catch(() => {});
+
+  // iPhone 的 Safari 用 webkit 接口，并且要在点击时同步调用
+  if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
+    const active = video.webkitPresentationMode === 'picture-in-picture';
+    video.webkitSetPresentationMode(active ? 'inline' : 'picture-in-picture');
+    return;
+  }
+  if (document.pictureInPictureElement) {
+    document.exitPictureInPicture().catch(() => {});
+    return;
+  }
+  if (!document.pictureInPictureEnabled) return showNotice('这个浏览器不支持悬浮窗');
+  video.requestPictureInPicture().catch(() => showNotice('悬浮窗没有打开，请在 Safari 里直接打开本页再试'));
+}
+
+function renderSeats() {
+  const seats = SEATS[state.players];
+  $('seatBar').replaceChildren(...seats.map(seat => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = seat;
+    button.setAttribute('aria-pressed', seat === state.seat);
+    button.addEventListener('click', () => { state.seat = seat; update(); });
+    return button;
+  }));
+  $('plays').replaceChildren(...seats.map(seat => {
+    const row = document.createElement('div');
+    row.className = 'play';
+    const name = document.createElement('b');
+    name.textContent = seat;
+    const cards = document.createElement('span');
+    const played = RANKS.flatMap(rank => state.history
+      .filter(item => item.seat === seat && item.card.slice(1) === rank)
+      .map(item => item.card));
+    cards.textContent = played.length ? played.join(' ') : '暂无';
+    row.append(name, cards);
+    return row;
+  }));
+}
+
+function setPlayers(players) {
+  state.players = players;
+  if (!SEATS[players].includes(state.seat)) state.seat = '我';
+  update();
+}
+
+let resetTimer = null;
+function disarmReset() {
+  clearTimeout(resetTimer);
+  resetTimer = null;
+  $('reset').classList.remove('armed');
+  $('reset').textContent = '新一局';
+}
+
+$('p3').addEventListener('click', () => setPlayers(3));
+$('p4').addEventListener('click', () => setPlayers(4));
+$('pip').addEventListener('click', togglePip);
+$('undo').addEventListener('click', () => {
+  const item = state.history.pop();
+  notice = item ? '已撤销 ' + item.seat + item.card : '';
+  update();
+});
+$('reset').addEventListener('click', () => {
+  if (resetTimer) {
+    disarmReset();
+    state.history = [];
+    notice = '';
+    update();
+    return;
+  }
+  $('reset').classList.add('armed');
+  $('reset').textContent = '再点一次清空';
+  resetTimer = setTimeout(disarmReset, 3000);
+});
+
+buildTable();
+update();
+startPipStream();
+setInterval(drawPip, 500);
+navigator.wakeLock?.request('screen').catch(() => {});
+</script>
+
+</body>
+</html>
