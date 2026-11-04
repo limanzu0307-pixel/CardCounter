@@ -10,7 +10,6 @@
 </head>
 <body>
 <title>打筒子记牌器</title>
-<title>打筒子记牌器</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* 布局：牌桌绿底上一张 4×11 的剩余牌表，操作区紧贴下方，单手可达 */
@@ -94,7 +93,7 @@ h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
 #reset.armed { background: var(--red); border-color: var(--red); }
 .seatRow { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
 .plays { display: grid; gap: 8px; }
-.play { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.5; }
+.play { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.5; }
 .play b { color: var(--gold); }
 .play span { overflow-wrap: anywhere; }
 .hint { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
@@ -270,22 +269,28 @@ function update() {
 }
 
 // 悬浮窗：把牌表画到画布，再当作视频交给系统画中画
-const PIP_WIDTH = 640, PIP_HEIGHT = 300, PIP_LABEL = 86, PIP_COLUMN = 50, PIP_ROW = 56;
+// 比例做得又宽又矮，系统小窗的高度会更小，少挡牌桌
+const PIP_WIDTH = 860, PIP_LABEL = 150, PIP_COLUMN = 64, PIP_ROW = 46;
 const pipCanvas = document.createElement('canvas');
 pipCanvas.width = PIP_WIDTH;
-pipCanvas.height = PIP_HEIGHT;
+
+const handLeft = seat => HAND - state.history.filter(item => item.seat === seat).length;
 
 function drawPip() {
+  const others = SEATS[state.players].filter(seat => seat !== '我');
+  const height = (others.length + 2) * PIP_ROW + 8;
+  if (pipCanvas.height !== height) pipCanvas.height = height;
+
   const ctx = pipCanvas.getContext('2d');
   ctx.fillStyle = '#0a3527';
-  ctx.fillRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
-  ctx.font = '700 28px -apple-system, "PingFang SC", sans-serif';
+  ctx.fillRect(0, 0, PIP_WIDTH, height);
+  ctx.font = '700 32px -apple-system, "PingFang SC", sans-serif';
   ctx.textBaseline = 'middle';
 
   const text = (value, x, row, color, align = 'center') => {
     ctx.textAlign = align;
     ctx.fillStyle = color;
-    ctx.fillText(value, x, 34 + row * PIP_ROW);
+    ctx.fillText(value, x, 27 + row * PIP_ROW);
   };
   const columnX = column => PIP_LABEL + column * PIP_COLUMN + PIP_COLUMN / 2;
 
@@ -296,8 +301,8 @@ function drawPip() {
     text(left, columnX(column), 1, left ? '#e8c35a' : '#2a7259');
   });
 
-  SEATS[state.players].filter(seat => seat !== '我').forEach((seat, index) => {
-    text(seat, 12, index + 2, '#f6f8f4', 'left');
+  others.forEach((seat, index) => {
+    text(seat + ' ' + handLeft(seat), 12, index + 2, '#f6f8f4', 'left');
     RANKS.forEach((rank, column) => {
       const count = state.history.filter(item => item.seat === seat && item.card.slice(1) === rank).length;
       text(count || '·', columnX(column), index + 2, count ? '#f6f8f4' : '#2a7259');
@@ -399,7 +404,7 @@ function renderSeats() {
     const row = document.createElement('div');
     row.className = 'play';
     const name = document.createElement('b');
-    name.textContent = seat;
+    name.textContent = seat === '我' ? seat : seat + ' 剩' + handLeft(seat);
     const cards = document.createElement('span');
     const played = RANKS.flatMap(rank => state.history
       .filter(item => item.seat === seat && item.card.slice(1) === rank)
