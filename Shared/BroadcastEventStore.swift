@@ -5,21 +5,19 @@ struct CardEvent: Codable {
     let seen: SeenCard
 }
 
-/// 广播扩展和主 APP 是两个进程，通过 App Group 传递识别结果。
+/// 广播扩展和主 APP 是两个进程，通过 keychain 共享组传递识别结果。
 /// 只有扩展写入事件，主 APP 按序号读取，所以两边不会互相覆盖。
 final class BroadcastEventStore {
-    static let groupID = SharedAppGroup.identifier
-
     private enum Key {
         static let events = "broadcast.events"
         static let heartbeat = "broadcast.heartbeat"
     }
 
     private let maxStoredEvents = 500
-    private let defaults: UserDefaults?
+    private let backend: BroadcastBackend
 
-    init(defaults: UserDefaults? = UserDefaults(suiteName: BroadcastEventStore.groupID)) {
-        self.defaults = defaults
+    init(backend: BroadcastBackend = KeychainBackend()) {
+        self.backend = backend
     }
 
     func append(_ cards: [SeenCard]) {
@@ -31,7 +29,9 @@ final class BroadcastEventStore {
             events.append(CardEvent(seq: seq, seen: seen))
         }
         let trimmed = Array(events.suffix(maxStoredEvents))
-        defaults?.set(try? JSONEncoder().encode(trimmed), forKey: Key.events)
+        if let data = try? JSONEncoder().encode(trimmed) {
+            backend.set(data, forKey: Key.events)
+        }
     }
 
     func events(after seq: Int) -> [CardEvent] {
@@ -39,16 +39,19 @@ final class BroadcastEventStore {
     }
 
     func beat(at date: Date = Date()) {
-        defaults?.set(date.timeIntervalSince1970, forKey: Key.heartbeat)
+        var value = date.timeIntervalSince1970
+        let data = Data(bytes: &value, count: MemoryLayout<Double>.size)
+        backend.set(data, forKey: Key.heartbeat)
     }
 
     func isBroadcasting(at date: Date = Date()) -> Bool {
-        guard let last = defaults?.double(forKey: Key.heartbeat), last > 0 else { return false }
-        return date.timeIntervalSince1970 - last < 3
+        guard let data = backend.data(forKey: Key.heartbeat), data.count == MemoryLayout<Double>.size else { return false }
+        let last = data.withUnsafeBytes { $0.load(as: Double.self) }
+        return last > 0 && date.timeIntervalSince1970 - last < 3
     }
 
     private func allEvents() -> [CardEvent] {
-        guard let data = defaults?.data(forKey: Key.events) else { return [] }
+        guard let data = backend.data(forKey: Key.events) else { return [] }
         return (try? JSONDecoder().decode([CardEvent].self, from: data)) ?? []
     }
 }

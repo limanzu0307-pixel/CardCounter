@@ -30,8 +30,8 @@ targets:
     entitlements:
       path: App/CardCounter.entitlements
       properties:
-        com.apple.security.application-groups:
-          - group.app.cardcounter
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)app.cardcounter.shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.cardcounter.ios
@@ -58,8 +58,8 @@ targets:
     entitlements:
       path: Broadcast/Broadcast.entitlements
       properties:
-        com.apple.security.application-groups:
-          - group.app.cardcounter
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)app.cardcounter.shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.cardcounter.ios.Broadcast

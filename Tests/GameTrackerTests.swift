@@ -69,14 +69,26 @@ final class GameTrackerTests: XCTestCase {
     }
 
     func testEventStoreReturnsOnlyNewEvents() throws {
-        let suite = "GameTrackerTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let store = BroadcastEventStore(defaults: defaults)
+        let store = BroadcastEventStore(backend: MemoryBackend())
         let seen = SeenCard(card: spadeAce, seat: .upper)
         store.append([seen, seen])
         XCTAssertEqual(store.events(after: 0).map(\.seq), [1, 2])
         XCTAssertEqual(store.events(after: 1).map(\.seq), [2])
     }
+
+    func testHeartbeatRoundTrips() {
+        let store = BroadcastEventStore(backend: MemoryBackend())
+        let now = Date()
+        XCTAssertFalse(store.isBroadcasting(at: now))
+        store.beat(at: now)
+        XCTAssertTrue(store.isBroadcasting(at: now.addingTimeInterval(1)))
+        XCTAssertFalse(store.isBroadcasting(at: now.addingTimeInterval(5)))
+    }
+}
+
+/// 测试用的内存后端，替代真机上的 keychain。
+private final class MemoryBackend: BroadcastBackend {
+    private var storage: [String: Data] = [:]
+    func data(forKey key: String) -> Data? { storage[key] }
+    func set(_ data: Data, forKey key: String) { storage[key] = data }
 }
