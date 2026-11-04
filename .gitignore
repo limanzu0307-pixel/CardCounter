@@ -4,3 +4,5 @@ DerivedData/
 Payload/
 *.ipa
 .DS_Store
+
+sideloadlydaemon.log
