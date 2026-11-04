@@ -84,7 +84,9 @@ h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
 .recent { min-height: 22px; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
 .recent.warn { color: var(--gold); }
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.pipVideo { display: block; width: 100%; max-height: 180px; background: var(--felt-deep); border-radius: 8px; }
+/* 视频只给悬浮窗用，平时隐藏；保留一点尺寸，否则 iPhone 可能拒绝画中画 */
+.pipVideo { position: fixed; right: 0; bottom: 0; width: 64px; height: 16px; opacity: .01; pointer-events: none; }
+.pipVideo.visible { position: static; display: block; width: 100%; height: auto; max-height: 180px; opacity: 1; pointer-events: auto; border-radius: 8px; }
 .actions button {
   min-height: 46px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--felt-deep); color: var(--card); font: 600 16px var(--font);
@@ -130,7 +132,7 @@ h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
   </div>
 
   <section class="plays" id="plays" aria-label="每家出的牌"></section>
-  <video class="pipVideo" id="pipVideo" playsinline muted autoplay loop controls aria-label="悬浮窗预览"></video>
+  <video class="pipVideo" id="pipVideo" playsinline muted autoplay loop aria-label="悬浮窗视频"></video>
 
   <p class="hint">格子里是这张牌还剩几张。先选“记给”哪一家，点一下记一张，长按还原一张。开局把自己的手牌记给“我”，别人打出的牌记给对应的玩家。未见的牌包含底牌。</p>
 </main>
@@ -363,6 +365,14 @@ function showNotice(message) {
   update();
 }
 
+// 按钮没能打开小窗时，把视频和系统控件露出来，让用户点画中画图标
+function showPipFallback() {
+  const video = $('pipVideo');
+  video.classList.add('visible');
+  video.controls = true;
+  showNotice('请点下方视频上的画中画图标');
+}
+
 function togglePip() {
   const video = $('pipVideo');
   if (!pipClipUrl) {
@@ -375,6 +385,9 @@ function togglePip() {
     if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
       const active = video.webkitPresentationMode === 'picture-in-picture';
       video.webkitSetPresentationMode(active ? 'inline' : 'picture-in-picture');
+      if (!active) setTimeout(() => {
+        if (video.webkitPresentationMode !== 'picture-in-picture') showPipFallback();
+      }, 1200);
       return;
     }
     if (document.pictureInPictureElement) {
