@@ -10,6 +10,7 @@
 </head>
 <body>
 <title>打筒子记牌器</title>
+<title>打筒子记牌器</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* 布局：牌桌绿底上一张 4×11 的剩余牌表，操作区紧贴下方，单手可达 */
@@ -84,7 +85,7 @@ h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
 .recent { min-height: 22px; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
 .recent.warn { color: var(--gold); }
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.pipVideo { position: fixed; right: 0; bottom: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.pipVideo { display: block; width: 100%; max-height: 180px; background: var(--felt-deep); border-radius: 8px; }
 .actions button {
   min-height: 46px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--felt-deep); color: var(--card); font: 600 16px var(--font);
@@ -130,7 +131,7 @@ h1 { margin: 0; font-size: 20px; letter-spacing: .04em; color: var(--gold); }
   </div>
 
   <section class="plays" id="plays" aria-label="每家出的牌"></section>
-  <video class="pipVideo" id="pipVideo" playsinline muted autoplay aria-hidden="true"></video>
+  <video class="pipVideo" id="pipVideo" playsinline muted autoplay loop controls aria-label="悬浮窗预览"></video>
 
   <p class="hint">格子里是这张牌还剩几张。先选“记给”哪一家，点一下记一张，长按还原一张。开局把自己的手牌记给“我”，别人打出的牌记给对应的玩家。未见的牌包含底牌。</p>
 </main>
@@ -264,6 +265,7 @@ function update() {
     : '还没有记录');
   renderSeats();
   drawPip();
+  schedulePipClip();
   save();
 }
 
@@ -303,11 +305,52 @@ function drawPip() {
   });
 }
 
-function startPipStream() {
-  const video = $('pipVideo');
-  if (!pipCanvas.captureStream) return false;
-  if (!video.srcObject) video.srcObject = pipCanvas.captureStream(5);
-  return true;
+// iPhone 对实时画布流的画中画支持不稳定，这里把牌表录成一小段循环视频
+const PIP_CLIP_MS = 1500;
+let pipClipUrl = null;
+let pipTimer = null;
+let pipRecording = false;
+let pipFrame = 0;
+
+function pipClipType() {
+  if (!window.MediaRecorder || !pipCanvas.captureStream) return null;
+  return ['video/mp4', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type)) || null;
+}
+
+function schedulePipClip() {
+  clearTimeout(pipTimer);
+  pipTimer = setTimeout(recordPipClip, 700);
+}
+
+function recordPipClip() {
+  const type = pipClipType();
+  if (!type || pipRecording) return;
+  pipRecording = true;
+
+  const stream = pipCanvas.captureStream(10);
+  const recorder = new MediaRecorder(stream, { mimeType: type });
+  const chunks = [];
+  // 画面不变时录不到帧，所以每次轻微改动一个角落的像素
+  const painter = setInterval(() => {
+    drawPip();
+    const ctx = pipCanvas.getContext('2d');
+    ctx.fillStyle = pipFrame++ % 2 ? '#0a3527' : '#0b3628';
+    ctx.fillRect(0, 0, 2, 2);
+  }, 100);
+
+  recorder.ondataavailable = event => chunks.push(event.data);
+  recorder.onstop = () => {
+    clearInterval(painter);
+    stream.getTracks().forEach(track => track.stop());
+    if (pipClipUrl) URL.revokeObjectURL(pipClipUrl);
+    pipClipUrl = URL.createObjectURL(new Blob(chunks, { type }));
+    const video = $('pipVideo');
+    video.src = pipClipUrl;
+    video.play().catch(() => {});
+    pipRecording = false;
+  };
+  recorder.start();
+  setTimeout(() => recorder.stop(), PIP_CLIP_MS);
 }
 
 function showNotice(message) {
@@ -317,21 +360,29 @@ function showNotice(message) {
 
 function togglePip() {
   const video = $('pipVideo');
-  if (!startPipStream()) return showNotice('这个浏览器不支持悬浮窗');
+  if (!pipClipUrl) {
+    return showNotice(pipClipType() ? '悬浮窗还在准备，请 2 秒后再点' : '这个浏览器不能生成悬浮窗视频');
+  }
   video.play().catch(() => {});
 
-  // iPhone 的 Safari 用 webkit 接口，并且要在点击时同步调用
-  if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
-    const active = video.webkitPresentationMode === 'picture-in-picture';
-    video.webkitSetPresentationMode(active ? 'inline' : 'picture-in-picture');
-    return;
+  try {
+    // iPhone 的 Safari 用 webkit 接口，并且要在点击时同步调用
+    if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
+      const active = video.webkitPresentationMode === 'picture-in-picture';
+      video.webkitSetPresentationMode(active ? 'inline' : 'picture-in-picture');
+      return;
+    }
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture().catch(() => {});
+      return;
+    }
+    if (!document.pictureInPictureEnabled) {
+      return showNotice('打不开：浏览器未开放画中画，试试点视频控件上的画中画图标');
+    }
+    video.requestPictureInPicture().catch(error => showNotice('打不开：' + error.name));
+  } catch (error) {
+    showNotice('打不开：' + error.name);
   }
-  if (document.pictureInPictureElement) {
-    document.exitPictureInPicture().catch(() => {});
-    return;
-  }
-  if (!document.pictureInPictureEnabled) return showNotice('这个浏览器不支持悬浮窗');
-  video.requestPictureInPicture().catch(() => showNotice('悬浮窗没有打开，请在 Safari 里直接打开本页再试'));
 }
 
 function renderSeats() {
@@ -396,8 +447,6 @@ $('reset').addEventListener('click', () => {
 
 buildTable();
 update();
-startPipStream();
-setInterval(drawPip, 500);
 navigator.wakeLock?.request('screen').catch(() => {});
 </script>
 
