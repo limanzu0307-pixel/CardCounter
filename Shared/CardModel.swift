@@ -36,9 +36,9 @@ struct Card: Hashable, Codable {
 
 enum Seat: String, CaseIterable, Codable, Identifiable {
     case me = "我"
-    case left = "上家"
+    case upper = "上家"
     case across = "对家"
-    case right = "下家"
+    case lower = "下家"
 
     var id: String { rawValue }
 }
@@ -55,7 +55,7 @@ enum PlayerCount: Int, CaseIterable, Codable, Identifiable {
 
     var id: Int { rawValue }
     var bottomCount: Int { GameTracker.totalCards - rawValue * GameTracker.handSize }
-    var seats: [Seat] { self == .three ? [.me, .left, .right] : [.me, .left, .across, .right] }
+    var seats: [Seat] { self == .three ? [.me, .upper, .lower] : [.me, .upper, .across, .lower] }
 }
 
 /// 记牌核心：history 按时间记录每一张已见的牌，其余数字都由它算出。

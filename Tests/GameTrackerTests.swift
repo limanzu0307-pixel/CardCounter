@@ -48,10 +48,10 @@ final class GameTrackerTests: XCTestCase {
     func testCardsAreGroupedBySeat() {
         var tracker = GameTracker()
         let heartTwo = Card(suit: .heart, rank: .two)
-        tracker.record(spadeAce, by: .left)
-        tracker.record(heartTwo, by: .right)
-        XCTAssertEqual(tracker.cards(of: .left), [spadeAce])
-        XCTAssertEqual(tracker.cards(of: .right), [heartTwo])
+        tracker.record(spadeAce, by: .upper)
+        tracker.record(heartTwo, by: .lower)
+        XCTAssertEqual(tracker.cards(of: .upper), [spadeAce])
+        XCTAssertEqual(tracker.cards(of: .lower), [heartTwo])
         XCTAssertEqual(tracker.cards(of: .me), [])
     }
 
@@ -59,13 +59,13 @@ final class GameTrackerTests: XCTestCase {
         var tracker = GameTracker()
         let heartFive = Card(suit: .heart, rank: .five)
         let clubTwo = Card(suit: .club, rank: .two)
-        tracker.record(heartFive, by: .left)
-        tracker.record(spadeAce, by: .left)
-        tracker.record(clubTwo, by: .left)
-        tracker.record(clubTwo, by: .left)
-        XCTAssertEqual(tracker.cards(of: .left), [clubTwo, clubTwo, spadeAce, heartFive])
-        XCTAssertEqual(tracker.count(of: .two, by: .left), 2)
-        XCTAssertEqual(tracker.count(of: .two, by: .right), 0)
+        tracker.record(heartFive, by: .upper)
+        tracker.record(spadeAce, by: .upper)
+        tracker.record(clubTwo, by: .upper)
+        tracker.record(clubTwo, by: .upper)
+        XCTAssertEqual(tracker.cards(of: .upper), [clubTwo, clubTwo, spadeAce, heartFive])
+        XCTAssertEqual(tracker.count(of: .two, by: .upper), 2)
+        XCTAssertEqual(tracker.count(of: .two, by: .lower), 0)
     }
 
     func testEventStoreReturnsOnlyNewEvents() throws {
@@ -74,7 +74,7 @@ final class GameTrackerTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
 
         let store = BroadcastEventStore(defaults: defaults)
-        let seen = SeenCard(card: spadeAce, seat: .left)
+        let seen = SeenCard(card: spadeAce, seat: .upper)
         store.append([seen, seen])
         XCTAssertEqual(store.events(after: 0).map(\.seq), [1, 2])
         XCTAssertEqual(store.events(after: 1).map(\.seq), [2])

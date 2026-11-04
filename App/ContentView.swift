@@ -141,7 +141,7 @@ struct ContentView: View {
     private var broadcastPanel: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(store.isBroadcasting ? "屏幕广播中" : "屏幕广播未开启").font(.headline)
-            Text("牌面识别尚未适配游戏，目前广播不会自动记牌。")
+            Text("广播时自动识别皮皮打筒子 3 人局的出牌。特效挡住的牌可能漏记，手动补上即可。")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if store.rejectedCount > 0 {

@@ -12,4 +12,4 @@ iPhone 记牌器。牌组共 176 张（4 副，去掉 3、4 和大小王），�
 ## 当前状态
 
 - 手动记牌、撤销、新一局和画中画小窗已完成代码编写。
-- 屏幕广播通路已接好，牌面识别还是占位实现。适配时替换 `Broadcast/CardRecognizer.swift` 里的 `PendingGameRecognizer`。
+- 牌面识别在 `Shared/TableReader.swift`，模板在 `Shared/GlyphTemplates.swift`，按 2622×1206 的皮皮打筒子 3 人局画面标定。其他分辨率比例和 4 人局还没有适配。
