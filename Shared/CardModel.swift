@@ -12,6 +12,7 @@ enum Suit: String, CaseIterable, Codable, Identifiable {
 
 /// 牌组没有 3、4 和大小王，所以只有 11 个点数。
 enum Rank: String, CaseIterable, Codable, Identifiable {
+    case two = "2"
     case ace = "A"
     case king = "K"
     case queen = "Q"
@@ -22,7 +23,6 @@ enum Rank: String, CaseIterable, Codable, Identifiable {
     case seven = "7"
     case six = "6"
     case five = "5"
-    case two = "2"
 
     var id: String { rawValue }
 }
@@ -30,6 +30,23 @@ enum Rank: String, CaseIterable, Codable, Identifiable {
 struct Card: Hashable, Codable {
     let suit: Suit
     let rank: Rank
+
+    var label: String { suit.rawValue + rank.rawValue }
+}
+
+enum Seat: String, CaseIterable, Codable, Identifiable {
+    case me = "我"
+    case left = "上家"
+    case across = "对家"
+    case right = "下家"
+
+    var id: String { rawValue }
+}
+
+/// 一张已见的牌，以及它属于哪一家。
+struct SeenCard: Hashable, Codable {
+    let card: Card
+    let seat: Seat
 }
 
 enum PlayerCount: Int, CaseIterable, Codable, Identifiable {
@@ -38,6 +55,7 @@ enum PlayerCount: Int, CaseIterable, Codable, Identifiable {
 
     var id: Int { rawValue }
     var bottomCount: Int { GameTracker.totalCards - rawValue * GameTracker.handSize }
+    var seats: [Seat] { self == .three ? [.me, .left, .right] : [.me, .left, .across, .right] }
 }
 
 /// 记牌核心：history 按时间记录每一张已见的牌，其余数字都由它算出。
@@ -47,13 +65,17 @@ struct GameTracker: Codable, Equatable {
     static let handSize = 44
 
     var playerCount: PlayerCount = .four
-    private(set) var history: [Card] = []
+    private(set) var history: [SeenCard] = []
 
     var seenTotal: Int { history.count }
     var remainingTotal: Int { Self.totalCards - history.count }
 
     func remaining(_ card: Card) -> Int {
-        Self.copiesPerCard - history.filter { $0 == card }.count
+        Self.copiesPerCard - history.filter { $0.card == card }.count
+    }
+
+    func cards(of seat: Seat) -> [Card] {
+        history.filter { $0.seat == seat }.map(\.card)
     }
 
     func remaining(rank: Rank) -> Int {
@@ -66,22 +88,22 @@ struct GameTracker: Codable, Equatable {
 
     /// 这种牌已经见满 4 张时返回 false，说明录入或识别有误。
     @discardableResult
-    mutating func record(_ card: Card) -> Bool {
+    mutating func record(_ card: Card, by seat: Seat = .me) -> Bool {
         guard remaining(card) > 0 else { return false }
-        history.append(card)
+        history.append(SeenCard(card: card, seat: seat))
         return true
     }
 
     /// 撤销最近一次记录。
     @discardableResult
-    mutating func undo() -> Card? {
+    mutating func undo() -> SeenCard? {
         history.popLast()
     }
 
     /// 还原指定的牌，用于修正记错的某一张。
     @discardableResult
     mutating func restore(_ card: Card) -> Bool {
-        guard let index = history.lastIndex(of: card) else { return false }
+        guard let index = history.lastIndex(where: { $0.card == card }) else { return false }
         history.remove(at: index)
         return true
     }

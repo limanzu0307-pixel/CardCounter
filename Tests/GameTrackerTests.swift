@@ -31,8 +31,8 @@ final class GameTrackerTests: XCTestCase {
         let heartTwo = Card(suit: .heart, rank: .two)
         tracker.record(spadeAce)
         tracker.record(heartTwo)
-        XCTAssertEqual(tracker.undo(), heartTwo)
-        XCTAssertEqual(tracker.history, [spadeAce])
+        XCTAssertEqual(tracker.undo()?.card, heartTwo)
+        XCTAssertEqual(tracker.history.map(\.card), [spadeAce])
     }
 
     func testRestoreSpecificCard() {
@@ -41,8 +41,18 @@ final class GameTrackerTests: XCTestCase {
         tracker.record(spadeAce)
         tracker.record(heartTwo)
         XCTAssertTrue(tracker.restore(spadeAce))
-        XCTAssertEqual(tracker.history, [heartTwo])
+        XCTAssertEqual(tracker.history.map(\.card), [heartTwo])
         XCTAssertFalse(tracker.restore(spadeAce))
+    }
+
+    func testCardsAreGroupedBySeat() {
+        var tracker = GameTracker()
+        let heartTwo = Card(suit: .heart, rank: .two)
+        tracker.record(spadeAce, by: .left)
+        tracker.record(heartTwo, by: .right)
+        XCTAssertEqual(tracker.cards(of: .left), [spadeAce])
+        XCTAssertEqual(tracker.cards(of: .right), [heartTwo])
+        XCTAssertEqual(tracker.cards(of: .me), [])
     }
 
     func testEventStoreReturnsOnlyNewEvents() throws {
@@ -51,7 +61,8 @@ final class GameTrackerTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
 
         let store = BroadcastEventStore(defaults: defaults)
-        store.append([spadeAce, spadeAce])
+        let seen = SeenCard(card: spadeAce, seat: .left)
+        store.append([seen, seen])
         XCTAssertEqual(store.events(after: 0).map(\.seq), [1, 2])
         XCTAssertEqual(store.events(after: 1).map(\.seq), [2])
     }

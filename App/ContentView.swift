@@ -5,17 +5,20 @@ struct ContentView: View {
     @StateObject private var store = GameStore()
     @StateObject private var pip = PiPController()
     @State private var confirmingReset = false
+    @State private var seat = Seat.me
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 playerPicker
                 summary
+                seatPicker
                 cardGrid
-                Text("点一下记一张，长按还原一张")
+                Text("先选记给哪一家，点一下记一张，长按还原一张")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 actions
+                seatPlays
                 broadcastPanel
             }
             .padding(16)
@@ -33,13 +36,38 @@ struct ContentView: View {
     private var playerPicker: some View {
         Picker("人数", selection: Binding(
             get: { store.tracker.playerCount },
-            set: { store.setPlayerCount($0) }
+            set: { count in
+                store.setPlayerCount(count)
+                if !count.seats.contains(seat) { seat = .me }
+            }
         )) {
             ForEach(PlayerCount.allCases) { count in
                 Text("\(count.rawValue)人").tag(count)
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    private var seatPicker: some View {
+        Picker("记给", selection: $seat) {
+            ForEach(store.tracker.playerCount.seats) { seat in
+                Text(seat.rawValue).tag(seat)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var seatPlays: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(store.tracker.playerCount.seats) { seat in
+                let cards = store.tracker.cards(of: seat)
+                HStack(alignment: .top) {
+                    Text(seat.rawValue).font(.subheadline.bold()).frame(width: 40, alignment: .leading)
+                    Text(cards.isEmpty ? "暂无" : cards.map(\.label).joined(separator: " "))
+                        .font(.subheadline)
+                }
+            }
+        }
     }
 
     private var summary: some View {
@@ -95,7 +123,7 @@ struct ContentView: View {
             .foregroundStyle(remaining == 0 ? Color.secondary : Color.primary)
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
-            .onTapGesture { store.record(card) }
+            .onTapGesture { store.record(card, by: seat) }
             .onLongPressGesture { store.restore(card) }
             .accessibilityLabel("\(card.suit.rawValue)\(card.rank.rawValue)，剩余\(remaining)张")
     }

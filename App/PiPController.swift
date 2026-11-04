@@ -91,7 +91,7 @@ struct PiPHostView: UIViewRepresentable {
 
 enum PiPFrameRenderer {
     private static let width = 640
-    private static let height = 300
+    private static let height = 420
 
     static func sampleBuffer(for tracker: GameTracker) -> CMSampleBuffer? {
         guard let pixelBuffer = pixelBuffer(for: tracker) else { return nil }
@@ -178,6 +178,18 @@ enum PiPFrameRenderer {
                 let count = tracker.remaining(Card(suit: suit, rank: rank))
                 text("\(count)", column: column + 1, row: row + 1, color: count == 0 ? .darkGray : color)
             }
+        }
+
+        // 表格下方显示另外几家最近出的牌
+        let lineFont = UIFont.monospacedSystemFont(ofSize: 25, weight: .semibold)
+        let others = tracker.playerCount.seats.filter { $0 != .me }
+        for (index, seat) in others.enumerated() {
+            let cards = tracker.cards(of: seat).suffix(9).map(\.label).joined(separator: " ")
+            let attributes: [NSAttributedString.Key: Any] = [.font: lineFont, .foregroundColor: UIColor.systemYellow]
+            ("\(seat.rawValue) \(cards)" as NSString).draw(
+                at: CGPoint(x: 16, y: 300 + CGFloat(index) * 38),
+                withAttributes: attributes
+            )
         }
     }
 }

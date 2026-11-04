@@ -2,7 +2,7 @@ import Foundation
 
 struct CardEvent: Codable {
     let seq: Int
-    let card: Card
+    let seen: SeenCard
 }
 
 /// 广播扩展和主 APP 是两个进程，通过 App Group 传递识别结果。
@@ -22,13 +22,13 @@ final class BroadcastEventStore {
         self.defaults = defaults
     }
 
-    func append(_ cards: [Card]) {
+    func append(_ cards: [SeenCard]) {
         guard !cards.isEmpty else { return }
         var events = allEvents()
         var seq = events.last?.seq ?? 0
-        for card in cards {
+        for seen in cards {
             seq += 1
-            events.append(CardEvent(seq: seq, card: card))
+            events.append(CardEvent(seq: seq, seen: seen))
         }
         let trimmed = Array(events.suffix(maxStoredEvents))
         defaults?.set(try? JSONEncoder().encode(trimmed), forKey: Key.events)

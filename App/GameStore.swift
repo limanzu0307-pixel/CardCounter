@@ -36,8 +36,8 @@ final class GameStore: ObservableObject {
         save()
     }
 
-    func record(_ card: Card) {
-        guard tracker.record(card) else { return }
+    func record(_ card: Card, by seat: Seat) {
+        guard tracker.record(card, by: seat) else { return }
         save()
     }
 
@@ -65,7 +65,7 @@ final class GameStore: ObservableObject {
         let newEvents = events.events(after: lastSeq)
         guard let last = newEvents.last else { return }
         for event in newEvents {
-            if !tracker.record(event.card) {
+            if !tracker.record(event.seen.card, by: event.seen.seat) {
                 rejectedCount += 1
             }
         }
