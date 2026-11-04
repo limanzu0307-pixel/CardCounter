@@ -90,8 +90,16 @@ struct PiPHostView: UIViewRepresentable {
 }
 
 enum PiPFrameRenderer {
-    private static let width = 640
-    private static let height = 300
+    // 又宽又矮，系统画中画窗口会更矮，少挡牌桌
+    private static let width = 900
+    private static let rowHeight: CGFloat = 40
+    private static let labelWidth: CGFloat = 150
+    private static let columnWidth: CGFloat = 66
+
+    private static func height(for tracker: GameTracker) -> Int {
+        let rows = 2 + tracker.playerCount.seats.filter { $0 != .me }.count
+        return rows * Int(rowHeight) + 12
+    }
 
     static func sampleBuffer(for tracker: GameTracker) -> CMSampleBuffer? {
         guard let pixelBuffer = pixelBuffer(for: tracker) else { return nil }
@@ -126,6 +134,7 @@ enum PiPFrameRenderer {
     }
 
     private static func pixelBuffer(for tracker: GameTracker) -> CVPixelBuffer? {
+        let height = height(for: tracker)
         let attributes = [kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any]()] as CFDictionary
         var buffer: CVPixelBuffer?
         CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, attributes, &buffer)
@@ -156,23 +165,20 @@ enum PiPFrameRenderer {
     }
 
     private static func draw(_ tracker: GameTracker) {
-        let font = UIFont.monospacedDigitSystemFont(ofSize: 32, weight: .bold)
-        let labelWidth: CGFloat = 86
-        let columnWidth: CGFloat = 49
-        let rowHeight: CGFloat = 56
+        let font = UIFont.monospacedDigitSystemFont(ofSize: 26, weight: .bold)
 
         func text(_ string: String, x: CGFloat, row: Int, color: UIColor) {
             let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
             (string as NSString).draw(
-                at: CGPoint(x: x, y: 12 + CGFloat(row) * rowHeight),
+                at: CGPoint(x: x, y: 8 + CGFloat(row) * rowHeight),
                 withAttributes: attributes
             )
         }
 
         func columnX(_ column: Int) -> CGFloat { labelWidth + CGFloat(column) * columnWidth }
 
-        // 第一行点数，第二行剩余张数，下面每行是一家各点数出过的张数
-        text("余", x: 12, row: 1, color: .systemYellow)
+        // 第一行点数，第二行剩余张数，下面每行是一家：名字+剩余手牌，各点数出过的张数
+        text("余", x: 10, row: 1, color: .systemYellow)
         for (column, rank) in Rank.allCases.enumerated() {
             let count = tracker.remaining(rank: rank)
             text(rank.rawValue, x: columnX(column), row: 0, color: .lightGray)
@@ -182,7 +188,8 @@ enum PiPFrameRenderer {
         let others = tracker.playerCount.seats.filter { $0 != .me }
         for (index, seat) in others.enumerated() {
             let row = index + 2
-            text(seat.rawValue, x: 12, row: row, color: .white)
+            let handLeft = GameTracker.handSize - tracker.cards(of: seat).count
+            text("\(seat.rawValue) \(handLeft)", x: 10, row: row, color: .white)
             for (column, rank) in Rank.allCases.enumerated() {
                 let count = tracker.count(of: rank, by: seat)
                 text(count == 0 ? "·" : "\(count)", x: columnX(column), row: row, color: count == 0 ? .darkGray : .white)

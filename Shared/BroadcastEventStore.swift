@@ -8,7 +8,7 @@ struct CardEvent: Codable {
 /// 广播扩展和主 APP 是两个进程，通过 App Group 传递识别结果。
 /// 只有扩展写入事件，主 APP 按序号读取，所以两边不会互相覆盖。
 final class BroadcastEventStore {
-    static let groupID = "group.app.cardcounter"
+    static let groupID = SharedAppGroup.identifier
 
     private enum Key {
         static let events = "broadcast.events"

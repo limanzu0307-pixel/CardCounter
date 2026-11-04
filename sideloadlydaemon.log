@@ -1,0 +1,34 @@
+2026/11/05 00:44:26 Loading 0.72
+2026/11/05 00:44:26 Apps [{Udid:00008150-000D1D893EE3401C Name:“Administrator”的 iPhone IsM1:false IsTV:false WiFi:false LastSeen:0001-01-01 00:00:00 +0000 UTC LastChecked:0001-01-01 00:00:00 +0000 UTC LastError:Install failed: Guru Meditation 0db732@425:3aea77 Login failed (-22421): This action could not be completed. Try again. FailuresCount:1}] map[string][]*model.Installation{}
+2026/11/05 00:44:26 Nothing to do for device &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:44:26 Sideloadly! Daemon v0.72 is running
+2026/11/05 00:44:26 Got device evt {{00008150-000D1D893EE3401C false “Administrator”的 iPhone iPhone18,3 26.2  false false <nil> <nil>} true}
+2026/11/05 00:44:26 Got device mobdev.DeviceInfo{Udid:"00008150-000D1D893EE3401C", IsNetwork:false, Name:"“Administrator”的 iPhone", devType:"iPhone18,3", version:"26.2", TvMac:"", tvPaired:false, m1:false, err:error(nil), cachedDev:(mobdev._Ctype_idevice_t)(nil)}
+2026/11/05 00:44:26 Device info: 00008150-000D1D893EE3401C false &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 2026-11-05 00:44:26.535946 +0700 +07 m=+0.383416701 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:44:26 Timeout stop: true
+2026/11/05 00:44:26 Drain failed?..
+2026/11/05 00:44:26 Will tick
+2026/11/05 00:44:26 Apps [{Udid:00008150-000D1D893EE3401C Name:“Administrator”的 iPhone IsM1:false IsTV:false WiFi:false LastSeen:2026-11-05 00:44:26.535946 +0700 +0700 LastChecked:2026-11-05 00:44:26.535946 +0700 +0700 LastError: FailuresCount:0}] map[string][]*model.Installation{}
+2026/11/05 00:44:26 Nothing to do for device &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:44:26 Done tick
+2026/11/05 00:45:26 Got timeout, refreshing
+2026/11/05 00:45:26 Timeout stop: false
+2026/11/05 00:45:26 Drain failed?..
+2026/11/05 00:45:26 Will tick
+2026/11/05 00:45:26 Apps [{Udid:00008150-000D1D893EE3401C Name:“Administrator”的 iPhone IsM1:false IsTV:false WiFi:false LastSeen:0001-01-01 00:00:00 +0000 UTC LastChecked:0001-01-01 00:00:00 +0000 UTC LastError:Install failed: Guru Meditation 0db732@425:3aea77 Login failed (-22421): This action could not be completed. Try again. FailuresCount:1}] map[string][]*model.Installation{}
+2026/11/05 00:45:26 Nothing to do for device &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:45:26 Done tick
+2026/11/05 00:46:26 Got timeout, refreshing
+2026/11/05 00:46:26 Timeout stop: false
+2026/11/05 00:46:26 Drain failed?..
+2026/11/05 00:46:26 Will tick
+2026/11/05 00:46:26 Apps [{Udid:00008150-000D1D893EE3401C Name:“Administrator”的 iPhone IsM1:false IsTV:false WiFi:false LastSeen:0001-01-01 00:00:00 +0000 UTC LastChecked:0001-01-01 00:00:00 +0000 UTC LastError:Install failed: Guru Meditation 0db732@425:3aea77 Login failed (-22421): This action could not be completed. Try again. FailuresCount:1}] map[string][]*model.Installation{}
+2026/11/05 00:46:26 Nothing to do for device &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:46:26 Done tick
+2026/11/05 00:47:26 Got timeout, refreshing
+2026/11/05 00:47:26 Timeout stop: false
+2026/11/05 00:47:26 Drain failed?..
+2026/11/05 00:47:26 Will tick
+2026/11/05 00:47:26 Apps [{Udid:00008150-000D1D893EE3401C Name:“Administrator”的 iPhone IsM1:false IsTV:false WiFi:false LastSeen:0001-01-01 00:00:00 +0000 UTC LastChecked:0001-01-01 00:00:00 +0000 UTC LastError:Install failed: Guru Meditation 0db732@425:3aea77 Login failed (-22421): This action could not be completed. Try again. FailuresCount:1}] map[string][]*model.Installation{}
+2026/11/05 00:47:26 Nothing to do for device &{00008150-000D1D893EE3401C “Administrator”的 iPhone false false false 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC  0}
+2026/11/05 00:47:26 Done tick
