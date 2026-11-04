@@ -74,8 +74,15 @@ struct GameTracker: Codable, Equatable {
         Self.copiesPerCard - history.filter { $0.card == card }.count
     }
 
+    /// 这一家记过的牌，按 2 到 5 的点数顺序排列。
     func cards(of seat: Seat) -> [Card] {
-        history.filter { $0.seat == seat }.map(\.card)
+        Rank.allCases.flatMap { rank in
+            history.filter { $0.seat == seat && $0.card.rank == rank }.map(\.card)
+        }
+    }
+
+    func count(of rank: Rank, by seat: Seat) -> Int {
+        history.filter { $0.seat == seat && $0.card.rank == rank }.count
     }
 
     func remaining(rank: Rank) -> Int {

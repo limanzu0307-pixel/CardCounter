@@ -55,6 +55,19 @@ final class GameTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.cards(of: .me), [])
     }
 
+    func testSeatCardsFollowRankOrderAndCount() {
+        var tracker = GameTracker()
+        let heartFive = Card(suit: .heart, rank: .five)
+        let clubTwo = Card(suit: .club, rank: .two)
+        tracker.record(heartFive, by: .left)
+        tracker.record(spadeAce, by: .left)
+        tracker.record(clubTwo, by: .left)
+        tracker.record(clubTwo, by: .left)
+        XCTAssertEqual(tracker.cards(of: .left), [clubTwo, clubTwo, spadeAce, heartFive])
+        XCTAssertEqual(tracker.count(of: .two, by: .left), 2)
+        XCTAssertEqual(tracker.count(of: .two, by: .right), 0)
+    }
+
     func testEventStoreReturnsOnlyNewEvents() throws {
         let suite = "GameTrackerTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

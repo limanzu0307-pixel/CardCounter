@@ -91,7 +91,7 @@ struct PiPHostView: UIViewRepresentable {
 
 enum PiPFrameRenderer {
     private static let width = 640
-    private static let height = 420
+    private static let height = 300
 
     static func sampleBuffer(for tracker: GameTracker) -> CMSampleBuffer? {
         guard let pixelBuffer = pixelBuffer(for: tracker) else { return nil }
@@ -156,40 +156,37 @@ enum PiPFrameRenderer {
     }
 
     private static func draw(_ tracker: GameTracker) {
-        let font = UIFont.monospacedSystemFont(ofSize: 34, weight: .bold)
-        let columnWidth: CGFloat = 50
-        let rowHeight: CGFloat = 58
+        let font = UIFont.monospacedDigitSystemFont(ofSize: 32, weight: .bold)
+        let labelWidth: CGFloat = 86
+        let columnWidth: CGFloat = 49
+        let rowHeight: CGFloat = 56
 
-        func text(_ string: String, column: Int, row: Int, color: UIColor) {
+        func text(_ string: String, x: CGFloat, row: Int, color: UIColor) {
             let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
             (string as NSString).draw(
-                at: CGPoint(x: 16 + CGFloat(column) * columnWidth, y: 8 + CGFloat(row) * rowHeight),
+                at: CGPoint(x: x, y: 12 + CGFloat(row) * rowHeight),
                 withAttributes: attributes
             )
         }
 
+        func columnX(_ column: Int) -> CGFloat { labelWidth + CGFloat(column) * columnWidth }
+
+        // 第一行点数，第二行剩余张数，下面每行是一家各点数出过的张数
+        text("余", x: 12, row: 1, color: .systemYellow)
         for (column, rank) in Rank.allCases.enumerated() {
-            text(rank == .ten ? "T" : rank.rawValue, column: column + 1, row: 0, color: .lightGray)
-        }
-        for (row, suit) in Suit.allCases.enumerated() {
-            let color: UIColor = suit.isRed ? .systemRed : .white
-            text(suit.rawValue, column: 0, row: row + 1, color: color)
-            for (column, rank) in Rank.allCases.enumerated() {
-                let count = tracker.remaining(Card(suit: suit, rank: rank))
-                text("\(count)", column: column + 1, row: row + 1, color: count == 0 ? .darkGray : color)
-            }
+            let count = tracker.remaining(rank: rank)
+            text(rank.rawValue, x: columnX(column), row: 0, color: .lightGray)
+            text("\(count)", x: columnX(column), row: 1, color: count == 0 ? .darkGray : .systemYellow)
         }
 
-        // 表格下方显示另外几家最近出的牌
-        let lineFont = UIFont.monospacedSystemFont(ofSize: 25, weight: .semibold)
         let others = tracker.playerCount.seats.filter { $0 != .me }
         for (index, seat) in others.enumerated() {
-            let cards = tracker.cards(of: seat).suffix(9).map(\.label).joined(separator: " ")
-            let attributes: [NSAttributedString.Key: Any] = [.font: lineFont, .foregroundColor: UIColor.systemYellow]
-            ("\(seat.rawValue) \(cards)" as NSString).draw(
-                at: CGPoint(x: 16, y: 300 + CGFloat(index) * 38),
-                withAttributes: attributes
-            )
+            let row = index + 2
+            text(seat.rawValue, x: 12, row: row, color: .white)
+            for (column, rank) in Rank.allCases.enumerated() {
+                let count = tracker.count(of: rank, by: seat)
+                text(count == 0 ? "·" : "\(count)", x: columnX(column), row: row, color: count == 0 ? .darkGray : .white)
+            }
         }
     }
 }
